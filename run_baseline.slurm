@@ -9,5 +9,5 @@ SCRIPT=$1
 
 echo "Running baseline script: $SCRIPT"
 
-cd "$(dirname "$0")"
+cd "$SLURM_SUBMIT_DIR/QDaxBase"
 uv run python "$SCRIPT"
