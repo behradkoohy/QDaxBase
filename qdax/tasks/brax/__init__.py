@@ -59,31 +59,31 @@ _qdax_custom_envs = {
     # All uni envs require debug=True to check contacts with the ground
     "ant_uni": {
         "env": "ant",
-        "wrappers": [FeetContactWrapper],
+        "wrappers": [XYPositionWrapper, FeetContactWrapper],
         "kwargs": [{}],
         "debug": True,
     },
     "humanoid_uni": {
         "env": "humanoid",
-        "wrappers": [FeetContactWrapper],
+        "wrappers": [XYPositionWrapper, FeetContactWrapper],
         "kwargs": [{}],
         "debug": True,
     },
     "halfcheetah_uni": {
         "env": "halfcheetah",
-        "wrappers": [FeetContactWrapper],
+        "wrappers": [XYPositionWrapper, FeetContactWrapper],
         "kwargs": [{}],
         "debug": True,
     },
     "hopper_uni": {
         "env": "hopper",
-        "wrappers": [FeetContactWrapper],
+        "wrappers": [XYPositionWrapper, FeetContactWrapper],
         "kwargs": [{}],
         "debug": True,
     },
     "walker2d_uni": {
         "env": "walker2d",
-        "wrappers": [FeetContactWrapper],
+        "wrappers": [XYPositionWrapper, FeetContactWrapper],
         "kwargs": [{}],
         "debug": True,
     },
