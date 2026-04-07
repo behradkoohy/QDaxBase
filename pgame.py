@@ -26,7 +26,6 @@ from tqdm import trange
 env_name = 'ant_uni'#@param['ant_uni', 'hopper_uni', 'walker_uni', 'halfcheetah_uni', 'humanoid_uni', 'ant_omni', 'humanoid_omni']
 episode_length = 1000 #@param {type:"integer"}
 num_iterations = 250 #@param {type:"integer"}
-seed = 5 #@param {type:"integer"}
 policy_hidden_layer_sizes = (256, 256) #@param {type:"raw"}
 iso_sigma = 0.005 #@param {type:"number"}
 line_sigma = 0.05 #@param {type:"number"}
@@ -60,9 +59,6 @@ policy_delay = 2 #@param {type:"number"}
 env = environments.create(env_name, episode_length=episode_length, backend='mjx')
 reset_fn = jax.jit(env.reset)
 
-# Init a random key
-key = jax.random.key(seed)
-
 # Init policy network
 policy_layer_sizes = policy_hidden_layer_sizes + (env.action_size,)
 policy_network = MLP(
@@ -70,13 +66,6 @@ policy_network = MLP(
     kernel_init=jax.nn.initializers.lecun_uniform(),
     final_activation=jnp.tanh,
 )
-
-# Init population of controllers
-key, subkey = jax.random.split(key)
-keys = jax.random.split(subkey, num=env_batch_size)
-fake_batch = jnp.zeros(shape=(env_batch_size, env.observation_size))
-init_variables = jax.vmap(policy_network.init)(keys, fake_batch)
-
 
 # Define the function to play a step with the policy in the environment
 def play_step_fn(
@@ -164,64 +153,76 @@ map_elites = MAPElites(
     metrics_function=metrics_function,
 )
 
-# Compute the centroids
-key, subkey = jax.random.split(key)
-centroids = compute_cvt_centroids(
-    num_descriptors=env.descriptor_length,
-    num_init_cvt_samples=num_init_cvt_samples,
-    num_centroids=num_centroids,
-    minval=min_descriptor,
-    maxval=max_descriptor,
-    key=subkey,
-)
-
-# compute initial repertoire
-key, subkey = jax.random.split(key)
-repertoire, emitter_state, init_metrics = map_elites.init(
-    init_variables, centroids, subkey
-)
-
 log_period = 1
 num_loops = num_iterations // log_period
 
-# Initialize metrics
-metrics = {key: jnp.array([]) for key in ["iteration", "qd_score", "coverage", "max_fitness", "time"]}
+for seed in [1, 2, 3, 4, 5]:
+    print(f'\n=== Running seed {seed} ===')
 
-# Set up init metrics
-init_metrics = jax.tree.map(lambda x: jnp.array([x]) if x.shape == () else x, init_metrics)
-init_metrics["iteration"] = jnp.array([0], dtype=jnp.int32)
-init_metrics["time"] = jnp.array([0.0])  # No time recorded for initialization
+    # Init a random key
+    key = jax.random.key(seed)
 
-# Convert init_metrics to match the metrics dictionary structure
-metrics = jax.tree.map(lambda metric, init_metric: jnp.concatenate([metric, init_metric], axis=0), metrics, init_metrics)
+    # Init population of controllers
+    key, subkey = jax.random.split(key)
+    keys = jax.random.split(subkey, num=env_batch_size)
+    fake_batch = jnp.zeros(shape=(env_batch_size, env.observation_size))
+    init_variables = jax.vmap(policy_network.init)(keys, fake_batch)
 
-# Initialize CSV logger
-csv_logger = CSVLogger(
-    f"pgame-logs-{seed}.csv",
-    header=list(metrics.keys())
-)
-
-print('Starting Main Loop')
-# Main loop
-map_elites_scan_update = map_elites.scan_update
-for i in trange(num_loops):
-    start_time = time.time()
-    (
-        repertoire,
-        emitter_state,
-        key,
-    ), current_metrics = jax.lax.scan(
-        map_elites_scan_update,
-        (repertoire, emitter_state, key),
-        (),
-        length=log_period,
+    # Compute the centroids
+    key, subkey = jax.random.split(key)
+    centroids = compute_cvt_centroids(
+        num_descriptors=env.descriptor_length,
+        num_init_cvt_samples=num_init_cvt_samples,
+        num_centroids=num_centroids,
+        minval=min_descriptor,
+        maxval=max_descriptor,
+        key=subkey,
     )
-    timelapse = time.time() - start_time
 
-    # Metrics
-    current_metrics["iteration"] = jnp.arange(1+log_period*i, 1+log_period*(i+1), dtype=jnp.int32)
-    current_metrics["time"] = jnp.repeat(timelapse, log_period)
-    metrics = jax.tree.map(lambda metric, current_metric: jnp.concatenate([metric, current_metric], axis=0), metrics, current_metrics)
+    # compute initial repertoire
+    key, subkey = jax.random.split(key)
+    repertoire, emitter_state, init_metrics = map_elites.init(
+        init_variables, centroids, subkey
+    )
 
-    # Log
-    csv_logger.log(jax.tree.map(lambda x: x[-1], metrics))
+    # Initialize metrics
+    metrics = {key: jnp.array([]) for key in ["iteration", "qd_score", "coverage", "max_fitness", "time"]}
+
+    # Set up init metrics
+    init_metrics = jax.tree.map(lambda x: jnp.array([x]) if x.shape == () else x, init_metrics)
+    init_metrics["iteration"] = jnp.array([0], dtype=jnp.int32)
+    init_metrics["time"] = jnp.array([0.0])  # No time recorded for initialization
+
+    # Convert init_metrics to match the metrics dictionary structure
+    metrics = jax.tree.map(lambda metric, init_metric: jnp.concatenate([metric, init_metric], axis=0), metrics, init_metrics)
+
+    # Initialize CSV logger
+    csv_logger = CSVLogger(
+        f"pgame-logs-{seed}.csv",
+        header=list(metrics.keys())
+    )
+
+    print('Starting Main Loop')
+    # Main loop
+    map_elites_scan_update = map_elites.scan_update
+    for i in trange(num_loops):
+        start_time = time.time()
+        (
+            repertoire,
+            emitter_state,
+            key,
+        ), current_metrics = jax.lax.scan(
+            map_elites_scan_update,
+            (repertoire, emitter_state, key),
+            (),
+            length=log_period,
+        )
+        timelapse = time.time() - start_time
+
+        # Metrics
+        current_metrics["iteration"] = jnp.arange(1+log_period*i, 1+log_period*(i+1), dtype=jnp.int32)
+        current_metrics["time"] = jnp.repeat(timelapse, log_period)
+        metrics = jax.tree.map(lambda metric, current_metric: jnp.concatenate([metric, current_metric], axis=0), metrics, current_metrics)
+
+        # Log
+        csv_logger.log(jax.tree.map(lambda x: x[-1], metrics))
