@@ -60,31 +60,31 @@ _qdax_custom_envs = {
     "ant_uni": {
         "env": "ant",
         "wrappers": [XYPositionWrapper, FeetContactWrapper],
-        "kwargs": [{}],
+        "kwargs": [{}, {}],
         "debug": True,
     },
     "humanoid_uni": {
         "env": "humanoid",
         "wrappers": [XYPositionWrapper, FeetContactWrapper],
-        "kwargs": [{}],
+        "kwargs": [{}, {}],
         "debug": True,
     },
     "halfcheetah_uni": {
         "env": "halfcheetah",
         "wrappers": [XYPositionWrapper, FeetContactWrapper],
-        "kwargs": [{}],
+        "kwargs": [{}, {}],
         "debug": True,
     },
     "hopper_uni": {
         "env": "hopper",
         "wrappers": [XYPositionWrapper, FeetContactWrapper],
-        "kwargs": [{}],
+        "kwargs": [{}, {}],
         "debug": True,
     },
     "walker2d_uni": {
         "env": "walker2d",
         "wrappers": [XYPositionWrapper, FeetContactWrapper],
-        "kwargs": [{}],
+        "kwargs": [{}, {}],
         "debug": True,
     },
 }

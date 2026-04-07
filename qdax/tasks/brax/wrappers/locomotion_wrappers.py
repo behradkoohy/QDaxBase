@@ -149,8 +149,8 @@ class FeetContactWrapper(QDWrapper):
         if self._is_mjx and env_name == 'ant':
             # These are the Geom IDs you verified are correct
             self._feet_ids = jnp.array([8, 11, 14, 17], dtype=jnp.int32)
-            # print(f"DEBUG: FeetContactWrapper loaded hardcoded IDs: {self._feet_ids}")
-
+        elif self._is_mjx and env_name == 'humanoid':
+            self._feet_ids = jnp.array([8, 11], dtype=jnp.int32)
         elif self._is_mjx:
             # --- MJX SETUP (Dynamic Lookup) ---
             import mujoco
@@ -181,7 +181,7 @@ class FeetContactWrapper(QDWrapper):
 
     @property
     def descriptor_length(self) -> int:
-        return len(self._feet_idx)
+        return len(self._feet_ids)
 
     @property
     def state_descriptor_name(self) -> str:
